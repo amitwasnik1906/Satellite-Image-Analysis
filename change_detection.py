@@ -2,8 +2,12 @@ import numpy as np
 import cv2
 import matplotlib.pyplot as plt
 import tensorflow as tf
+import os
+from tensorflow.keras.preprocessing.image import img_to_array
+from matplotlib.colors import LinearSegmentedColormap
+import gc
 
-class ChangeDetector:
+class HighResolutionChangeDetector:
     def __init__(self, model_path):
         """
         Initialize Change Detector
@@ -17,112 +21,327 @@ class ChangeDetector:
             'Highway', 'Industrial', 'Pasture', 
             'PermanentCrop', 'Residential', 'River', 'SeaLake'
         ]
+        # Define class colors for visualization (RGB format)
+        self.class_colors = {
+            'AnnualCrop': [255, 255, 0],       # Yellow
+            'Forest': [0, 128, 0],             # Green
+            'HerbaceousVegetation': [144, 238, 144],  # Light Green
+            'Highway': [128, 128, 128],        # Gray
+            'Industrial': [255, 0, 0],         # Red
+            'Pasture': [173, 216, 230],        # Light Blue
+            'PermanentCrop': [255, 165, 0],    # Orange
+            'Residential': [255, 0, 255],      # Magenta
+            'River': [0, 0, 255],              # Blue
+            'SeaLake': [0, 191, 255]           # Deep Sky Blue
+        }
 
-    def preprocess_image(self, image_path, target_size=(64, 64)):
+    def _sliding_window(self, image, window_size, stride):
         """
-        Preprocess single image for prediction
+        Generate sliding windows from an image
         
         Args:
-            image_path (str): Path to image
-            target_size (tuple): Resize dimensions
-        
-        Returns:
-            numpy.ndarray: Preprocessed image
+            image (numpy.ndarray): Input image
+            window_size (tuple): Size of sliding window (width, height)
+            stride (int): Step size for sliding window
+            
+        Yields:
+            tuple: (x, y, window)
         """
-        img = cv2.imread(image_path)
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        img = cv2.resize(img, target_size)
-        img = img / 255.0
-        return np.expand_dims(img, axis=0)
+        for y in range(0, image.shape[0] - window_size[1] + 1, stride):
+            for x in range(0, image.shape[1] - window_size[0] + 1, stride):
+                yield (x, y, image[y:y + window_size[1], x:x + window_size[0]])
 
-    def detect_changes(self, image1_path, image2_path):
+    def preprocess_large_image(self, image_path, window_size=(64, 64), stride=32):
         """
-        Detect changes between two satellite images
+        Preprocess large image using sliding window approach
+        
+        Args:
+            image_path (str): Path to large image
+            window_size (tuple): Size of sliding window
+            stride (int): Step size for sliding window
+            
+        Returns:
+            tuple: (windows, positions, original_image, image_shape)
+        """
+        # Load image
+        original_image = cv2.imread(image_path)
+        original_image = cv2.cvtColor(original_image, cv2.COLOR_BGR2RGB)
+        image_shape = original_image.shape
+        
+        # Generate windows
+        windows = []
+        positions = []
+        
+        for x, y, window in self._sliding_window(original_image, window_size, stride):
+            # Preprocess window
+            processed_window = cv2.resize(window, window_size)
+            processed_window = processed_window / 255.0
+            
+            windows.append(processed_window)
+            positions.append((x, y))
+        
+        return np.array(windows), positions, original_image, image_shape
+
+    def predict_large_image(self, image_path, window_size=(64, 64), stride=32):
+        """
+        Predict classes for a large image using sliding window
+        
+        Args:
+            image_path (str): Path to large image
+            window_size (tuple): Size of sliding window
+            stride (int): Step size for sliding window
+            
+        Returns:
+            tuple: (class_map, confidence_map, original_image, image_shape)
+        """
+        # Preprocess image
+        windows, positions, original_image, image_shape = self.preprocess_large_image(
+            image_path, window_size, stride
+        )
+        
+        # Predict in batches to avoid memory issues
+        batch_size = 128
+        predictions = []
+        
+        for i in range(0, len(windows), batch_size):
+            batch = windows[i:i+batch_size]
+            batch_preds = self.model.predict(np.array(batch), verbose=0)
+            predictions.extend(batch_preds)
+            
+            # Clean up to free memory
+            del batch
+            gc.collect()
+        
+        # Create class and confidence maps
+        class_map = np.zeros((image_shape[0], image_shape[1]), dtype=np.uint8)
+        confidence_map = np.zeros((image_shape[0], image_shape[1]), dtype=np.float32)
+        
+        for (x, y), pred in zip(positions, predictions):
+            class_idx = np.argmax(pred)
+            confidence = pred[class_idx]
+            
+            # Fill the corresponding region in the maps
+            end_y = min(y + window_size[1], image_shape[0])
+            end_x = min(x + window_size[0], image_shape[1])
+            
+            # Only update if the new confidence is higher
+            region_confidence = confidence_map[y:end_y, x:end_x]
+            update_mask = (region_confidence < confidence) | (region_confidence == 0)
+            
+            # Apply updates only where needed
+            confidence_map[y:end_y, x:end_x][update_mask] = confidence
+            class_map[y:end_y, x:end_x][update_mask] = class_idx
+        
+        # Free memory
+        del windows, predictions
+        gc.collect()
+        
+        return class_map, confidence_map, original_image, image_shape
+
+    def detect_changes(self, image1_path, image2_path, window_size=(64, 64), stride=32):
+        """
+        Detect changes between two large satellite images
         
         Args:
             image1_path (str): Path to first image
             image2_path (str): Path to second image
-        
+            window_size (tuple): Size of sliding window
+            stride (int): Step size for sliding window
+            
         Returns:
             dict: Change detection results
         """
-        # Preprocess images
-        img1 = self.preprocess_image(image1_path)
-        img2 = self.preprocess_image(image2_path)
-
-        # Predict classes
-        pred1 = self.model.predict(img1)
-        pred2 = self.model.predict(img2)
-
-        # Get top predictions
-        class1 = self.classes[np.argmax(pred1)]
-        class2 = self.classes[np.argmax(pred2)]
-
-        # Change detection
-        change_detected = class1 != class2
-
+        print("Processing first image...")
+        class_map1, confidence_map1, image1, shape1 = self.predict_large_image(
+            image1_path, window_size, stride
+        )
+        
+        print("Processing second image...")
+        class_map2, confidence_map2, image2, shape2 = self.predict_large_image(
+            image2_path, window_size, stride
+        )
+        
+        # Make sure images have the same shape
+        if shape1 != shape2:
+            # Resize second image to match first
+            image2 = cv2.resize(image2, (shape1[1], shape1[0]))
+            class_map2 = cv2.resize(class_map2, (shape1[1], shape1[0]), interpolation=cv2.INTER_NEAREST)
+            confidence_map2 = cv2.resize(confidence_map2, (shape1[1], shape1[0]), interpolation=cv2.INTER_LINEAR)
+        
+        # Create change map
+        change_map = (class_map1 != class_map2).astype(np.uint8) * 255
+        
+        # Use morphological operations to clean up the change map
+        kernel = np.ones((5, 5), np.uint8)
+        change_map = cv2.morphologyEx(change_map, cv2.MORPH_OPEN, kernel)
+        change_map = cv2.morphologyEx(change_map, cv2.MORPH_CLOSE, kernel)
+        
+        # Calculate class distribution in both images
+        class_distribution1 = [np.sum(class_map1 == i) / class_map1.size for i in range(len(self.classes))]
+        class_distribution2 = [np.sum(class_map2 == i) / class_map2.size for i in range(len(self.classes))]
+        
+        # Calculate major changes
+        major_changes = []
+        for i in range(len(self.classes)):
+            change = class_distribution2[i] - class_distribution1[i]
+            if abs(change) > 0.05:  # More than 5% change
+                change_type = "increase" if change > 0 else "decrease"
+                major_changes.append({
+                    "class": self.classes[i],
+                    "type": change_type,
+                    "percentage": abs(change) * 100
+                })
+        
         return {
-            'initial_class': class1,
-            'final_class': class2,
-            'change_detected': change_detected,
-            'initial_confidences': pred1[0],
-            'final_confidences': pred2[0]
+            'image1': image1,
+            'image2': image2,
+            'class_map1': class_map1,
+            'class_map2': class_map2,
+            'confidence_map1': confidence_map1,
+            'confidence_map2': confidence_map2,
+            'change_map': change_map,
+            'class_distribution1': class_distribution1,
+            'class_distribution2': class_distribution2,
+            'major_changes': major_changes
         }
 
-    def visualize_changes(self, image1_path, image2_path, results):
-        """
-        Visualize changes between images
+    def generate_change_visualization(self, results, output_path):
+        # Create color-coded class maps
+        class_map1_rgb = np.zeros((results['class_map1'].shape[0], results['class_map1'].shape[1], 3), dtype=np.uint8)
+        class_map2_rgb = np.zeros((results['class_map2'].shape[0], results['class_map2'].shape[1], 3), dtype=np.uint8)
         
-        Args:
-            image1_path (str): Path to first image
-            image2_path (str): Path to second image
-            results (dict): Change detection results
-        """
-        plt.figure(figsize=(15, 5))
-
-        # Original Images
-        plt.subplot(131)
-        img1 = cv2.imread(image1_path)
-        img1 = cv2.cvtColor(img1, cv2.COLOR_BGR2RGB)
-        plt.title(f'Image 1: {results["initial_class"]}')
-        plt.imshow(img1)
-
-        plt.subplot(132)
-        img2 = cv2.imread(image2_path)
-        img2 = cv2.cvtColor(img2, cv2.COLOR_BGR2RGB)
-        plt.title(f'Image 2: {results["final_class"]}')
-        plt.imshow(img2)
-
-        # Change Detection Plot
-        plt.subplot(133)
-        plt.title('Change Detection Confidence')
-        classes = self.classes
-        confidences1 = results['initial_confidences']
-        confidences2 = results['final_confidences']
+        for i, class_name in enumerate(self.classes):
+            class_map1_rgb[results['class_map1'] == i] = self.class_colors[class_name]
+            class_map2_rgb[results['class_map2'] == i] = self.class_colors[class_name]
         
-        plt.bar(classes, confidences1, alpha=0.5, label='Image 1')
-        plt.bar(classes, confidences2, alpha=0.5, label='Image 2')
-        plt.xticks(rotation=45, ha='right')
-        plt.legend()
-
+        # Create change highlight overlay
+        change_overlay = np.zeros_like(results['image2'])
+        change_overlay[results['change_map'] > 0] = [255, 0, 0]  # Red for changes
+        
+        # Combine with second image
+        alpha = 0.5
+        change_highlighted = cv2.addWeighted(results['image2'], 1, change_overlay, alpha, 0)
+        
+        # Generate visualization
+        plt.figure(figsize=(20, 15))
+        
+        # Original images
+        plt.subplot(2, 2, 1)
+        plt.title('Initial Image', fontsize=12)
+        plt.imshow(results['image1'])
+        plt.axis('off')
+        
+        plt.subplot(2, 2, 2)
+        plt.title('Recent Image', fontsize=12)
+        plt.imshow(results['image2'])
+        plt.axis('off')
+        
+        # Classification results
+        plt.subplot(2, 2, 3)
+        plt.title('Land Use Classification - Initial', fontsize=12)
+        plt.imshow(class_map1_rgb)
+        plt.axis('off')
+        
+        # Create a legend for classes
+        legend_elements = []
+        for class_name, color in self.class_colors.items():
+            color_normalized = [c/255 for c in color]
+            legend_elements.append(plt.Line2D([0], [0], marker='s', color='w', 
+                                markerfacecolor=color_normalized, markersize=10, label=class_name))
+        
+        plt.legend(handles=legend_elements, loc='lower right', fontsize=8)
+        
+        # Change detection results
+        plt.subplot(2, 2, 4)
+        plt.title('Detected Changes', fontsize=12)
+        plt.imshow(change_highlighted)
+        plt.axis('off')
+        
+        # Add text about major changes
+        change_text = "Major Changes Detected:\n"
+        if results['major_changes']:
+            for change in results['major_changes']:
+                change_text += f"• {change['class']}: {change['type']} by {change['percentage']:.1f}%\n"
+        else:
+            change_text += "No significant changes detected"
+        
+        plt.figtext(0.5, 0.05, change_text, ha="center", fontsize=12, 
+                    bbox={"facecolor":"white", "alpha":0.8, "pad":5})
+        
         plt.tight_layout()
-        plt.show()
+        plt.savefig(output_path, dpi=300, bbox_inches='tight')
+        plt.close()
+        
+        # Create a separate high-resolution change map
+        plt.figure(figsize=(15, 10))
+        
+        # Create a new axis for the image
+        ax = plt.gca()
+        plt.title('Land Use Change Map', fontsize=16)
+        im = ax.imshow(change_highlighted)
+        plt.axis('off')
+        
+        # Add color bar for changes - FIX: Specify the axis for the colorbar
+        cmap = LinearSegmentedColormap.from_list('change_cmap', ['white', 'red'])
+        sm = plt.cm.ScalarMappable(cmap=cmap)
+        sm.set_array([])
+        
+        # Fix: Pass the axis to the colorbar function
+        cbar = plt.colorbar(sm, ax=ax, orientation='horizontal', pad=0.05)
+        cbar.set_label('Change Intensity')
+        
+        change_map_path = os.path.splitext(output_path)[0] + "_change_map.jpg"
+        plt.savefig(change_map_path, dpi=300, bbox_inches='tight')
+        plt.close()
+        
+        return output_path, change_map_path
 
-# Main Execution Script
 def main():
-    # Paths to your images
-    image1_path = './dataset/wce/2013.jpg'
-    image2_path = './dataset/wce/2025.jpg'
-
-    # Initialize Change Detector
-    detector = ChangeDetector('./models/eurosat_change_detection.h5')
-
-    # Detect Changes
-    results = detector.detect_changes(image1_path, image2_path)
-    print("Change Detection Results:", results)
-
-    # Visualize Changes
-    detector.visualize_changes(image1_path, image2_path, results)
+    """
+    Main execution function
+    """
+    # Make sure directories exist
+    os.makedirs('./models', exist_ok=True)
+    os.makedirs('./results', exist_ok=True)
+    
+    # Check if model exists, if not, train it
+    model_path = './models/eurosat_change_detection.h5'
+    if not os.path.exists(model_path):
+        print("Model not found. Please run train_model.py first.")
+        return
+    
+    # Initialize detector
+    detector = HighResolutionChangeDetector(model_path)
+    
+    # Get input paths
+    image1_path = './images/wce/2013.jpg'
+    image2_path = './images/wce/2025.jpg'
+    
+    # Detect changes
+    print("Detecting changes between images...")
+    results = detector.detect_changes(
+        image1_path, 
+        image2_path,
+        window_size=(64, 64),
+        stride=32
+    )
+    
+    # Generate visualization
+    print("Generating change visualization...")
+    output_path = './results/change_detection_result.jpg'
+    vis_path, change_map_path = detector.generate_change_visualization(results, output_path)
+    
+    print(f"Change detection complete!")
+    print(f"Full visualization saved to: {vis_path}")
+    print(f"Change map saved to: {change_map_path}")
+    
+    # Summary of changes
+    print("\nSummary of changes:")
+    if results['major_changes']:
+        for change in results['major_changes']:
+            print(f"- {change['class']}: {change['type']} by {change['percentage']:.1f}%")
+    else:
+        print("No significant changes detected")
 
 if __name__ == '__main__':
     main()
