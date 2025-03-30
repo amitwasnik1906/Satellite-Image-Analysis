@@ -14,6 +14,7 @@ cd mini-project-2
 ### 2. Create Virtual Environment
 ```bash
 python -m venv venv
+.\venv\Scripts\activate 
 ```
 
 ### 3. Install Dependencies
