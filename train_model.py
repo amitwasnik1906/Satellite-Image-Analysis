@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 
 def train_eurosat_model(dataset_path='./dataset/EuroSAT', 
                         split_path='./dataset/split', 
-                        model_save_path='./models/eurosat_change_detection.h5'):
+                        model_save_path='./models/change_detection.h5'):
     """
     Complete training pipeline for EuroSAT change detection model
     

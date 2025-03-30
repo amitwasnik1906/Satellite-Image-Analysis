@@ -6,6 +6,7 @@ import os
 from tensorflow.keras.preprocessing.image import img_to_array
 from matplotlib.colors import LinearSegmentedColormap
 import gc
+import datetime 
 
 class HighResolutionChangeDetector:
     def __init__(self, model_path):
@@ -305,7 +306,7 @@ def main():
     os.makedirs('./results', exist_ok=True)
     
     # Check if model exists, if not, train it
-    model_path = './models/eurosat_change_detection.h5'
+    model_path = './models/change_detection.h5'
     if not os.path.exists(model_path):
         print("Model not found. Please run train_model.py first.")
         return
@@ -314,8 +315,8 @@ def main():
     detector = HighResolutionChangeDetector(model_path)
     
     # Get input paths
-    image1_path = './images/wce/2013.jpg'
-    image2_path = './images/wce/2025.jpg'
+    image1_path = './images/ngp/2013.jpg'
+    image2_path = './images/ngp/2025.jpg'
     
     # Detect changes
     print("Detecting changes between images...")
@@ -328,7 +329,9 @@ def main():
     
     # Generate visualization
     print("Generating change visualization...")
-    output_path = './results/change_detection_result.jpg'
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    output_path = f'./results/change_detection_result_{timestamp}.jpg'
+    
     vis_path, change_map_path = detector.generate_change_visualization(results, output_path)
     
     print(f"Change detection complete!")
