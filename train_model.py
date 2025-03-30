@@ -27,8 +27,8 @@ def train_eurosat_model(dataset_path='./dataset/EuroSAT',
         os.path.join(split_path, 'val')
     )
     
-    # Initialize model
-    change_detection_model = EuroSATChangeDetectionModel()
+    # Initialize model with 8 classes instead of 10
+    change_detection_model = EuroSATChangeDetectionModel(num_classes=8)
     
     # Train model
     history = change_detection_model.train(

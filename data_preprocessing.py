@@ -22,8 +22,8 @@ class EuroSATDataProcessor:
         self.test_split = test_split
         self.classes = [
             'AnnualCrop', 'Forest', 'HerbaceousVegetation', 
-            'Highway', 'Industrial', 'Pasture', 
-            'PermanentCrop', 'Residential', 'River', 'SeaLake'
+            'Industrial', 'Pasture', 'PermanentCrop', 
+            'Residential', 'SeaLake'
         ]
 
     def split_dataset(self, output_path='./dataset/split'):

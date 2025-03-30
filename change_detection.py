@@ -19,20 +19,18 @@ class HighResolutionChangeDetector:
         self.model = tf.keras.models.load_model(model_path)
         self.classes = [
             'AnnualCrop', 'Forest', 'HerbaceousVegetation', 
-            'Highway', 'Industrial', 'Pasture', 
-            'PermanentCrop', 'Residential', 'River', 'SeaLake'
+            'Industrial', 'Pasture', 'PermanentCrop', 
+            'Residential', 'SeaLake'
         ]
         # Define class colors for visualization (RGB format)
         self.class_colors = {
             'AnnualCrop': [255, 255, 0],       # Yellow
             'Forest': [0, 128, 0],             # Green
             'HerbaceousVegetation': [144, 238, 144],  # Light Green
-            'Highway': [128, 128, 128],        # Gray
             'Industrial': [255, 0, 0],         # Red
             'Pasture': [173, 216, 230],        # Light Blue
             'PermanentCrop': [255, 165, 0],    # Orange
             'Residential': [255, 0, 255],      # Magenta
-            'River': [0, 0, 255],              # Blue
             'SeaLake': [0, 191, 255]           # Deep Sky Blue
         }
 
@@ -181,17 +179,16 @@ class HighResolutionChangeDetector:
         class_distribution1 = [np.sum(class_map1 == i) / class_map1.size for i in range(len(self.classes))]
         class_distribution2 = [np.sum(class_map2 == i) / class_map2.size for i in range(len(self.classes))]
         
-        # Calculate major changes
-        major_changes = []
+        # Calculate change percentages
+        change_percentages = []
         for i in range(len(self.classes)):
             change = class_distribution2[i] - class_distribution1[i]
-            if abs(change) > 0.05:  # More than 5% change
-                change_type = "increase" if change > 0 else "decrease"
-                major_changes.append({
-                    "class": self.classes[i],
-                    "type": change_type,
-                    "percentage": abs(change) * 100
-                })
+            change_percentages.append({
+                "class": self.classes[i],
+                "change": change * 100,  # Convert to percentage
+                "initial": class_distribution1[i] * 100,
+                "final": class_distribution2[i] * 100
+            })
         
         return {
             'image1': image1,
@@ -203,7 +200,7 @@ class HighResolutionChangeDetector:
             'change_map': change_map,
             'class_distribution1': class_distribution1,
             'class_distribution2': class_distribution2,
-            'major_changes': major_changes
+            'change_percentages': change_percentages
         }
 
     def generate_change_visualization(self, results, output_path):
@@ -215,7 +212,7 @@ class HighResolutionChangeDetector:
             class_map1_rgb[results['class_map1'] == i] = self.class_colors[class_name]
             class_map2_rgb[results['class_map2'] == i] = self.class_colors[class_name]
         
-        # Create change highlight overlay
+        # Create change highlight overlay (using red for all changes)
         change_overlay = np.zeros_like(results['image2'])
         change_overlay[results['change_map'] > 0] = [255, 0, 0]  # Red for changes
         
@@ -254,26 +251,28 @@ class HighResolutionChangeDetector:
         
         # Change detection results
         plt.subplot(2, 2, 4)
-        plt.title('Detected Changes', fontsize=12)
+        plt.title('Land Use Changes with Percentages', fontsize=12)
         plt.imshow(change_highlighted)
         plt.axis('off')
         
-        # Add text about major changes
-        change_text = "Major Changes Detected:\n"
-        if results['major_changes']:
-            for change in results['major_changes']:
-                change_text += f"• {change['class']}: {change['type']} by {change['percentage']:.1f}%\n"
-        else:
-            change_text += "No significant changes detected"
+        # Add change percentages in small text in the right corner
+        ax = plt.gca()
+        text_box = ""
+        for change_data in sorted(results['change_percentages'], key=lambda x: x['class']):
+            sign = "+" if change_data['change'] > 0 else ""
+            text_box += f"{change_data['class']}: {sign}{change_data['change']:.1f}%\n"
         
-        plt.figtext(0.5, 0.05, change_text, ha="center", fontsize=12, 
-                    bbox={"facecolor":"white", "alpha":0.8, "pad":5})
+        # Place text box in the right corner
+        props = dict(boxstyle='round', facecolor='white', alpha=0.7)
+        ax.text(0.95, 0.05, text_box, transform=ax.transAxes, fontsize=8,
+                verticalalignment='bottom', horizontalalignment='right',
+                bbox=props)
         
         plt.tight_layout()
         plt.savefig(output_path, dpi=300, bbox_inches='tight')
         plt.close()
         
-        # Create a separate high-resolution change map
+        # Create a separate high-resolution change map (original style with single color)
         plt.figure(figsize=(15, 10))
         
         # Create a new axis for the image
@@ -282,12 +281,11 @@ class HighResolutionChangeDetector:
         im = ax.imshow(change_highlighted)
         plt.axis('off')
         
-        # Add color bar for changes - FIX: Specify the axis for the colorbar
+        # Add color bar for changes
         cmap = LinearSegmentedColormap.from_list('change_cmap', ['white', 'red'])
         sm = plt.cm.ScalarMappable(cmap=cmap)
         sm.set_array([])
         
-        # Fix: Pass the axis to the colorbar function
         cbar = plt.colorbar(sm, ax=ax, orientation='horizontal', pad=0.05)
         cbar.set_label('Change Intensity')
         
@@ -340,11 +338,9 @@ def main():
     
     # Summary of changes
     print("\nSummary of changes:")
-    if results['major_changes']:
-        for change in results['major_changes']:
-            print(f"- {change['class']}: {change['type']} by {change['percentage']:.1f}%")
-    else:
-        print("No significant changes detected")
+    for change in results['change_percentages']:
+        sign = "+" if change['change'] > 0 else ""
+        print(f"- {change['class']}: {sign}{change['change']:.1f}% (from {change['initial']:.1f}% to {change['final']:.1f}%)")
 
 if __name__ == '__main__':
     main()

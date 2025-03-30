@@ -2,13 +2,13 @@ import tensorflow as tf
 from tensorflow.keras import layers, models, optimizers
 
 class EuroSATChangeDetectionModel:
-    def __init__(self, input_shape=(64, 64, 3), num_classes=10):
+    def __init__(self, input_shape=(64, 64, 3), num_classes=8):
         """
         Initialize Change Detection Model
         
         Args:
             input_shape (tuple): Input image dimensions
-            num_classes (int): Number of land cover classes
+            num_classes (int): Number of land cover classes (updated to 8)
         """
         self.input_shape = input_shape
         self.num_classes = num_classes
