@@ -92,7 +92,7 @@ class EuroSATChangeDetectionModel:
 
         return history
 
-    def save_model(self, filepath='./models/change_detection.h5'):
+    def save_model(self, filepath='./models/change_detection.keras'):
         """
         Save trained model weights
         
@@ -101,7 +101,7 @@ class EuroSATChangeDetectionModel:
         """
         self.model.save(filepath)
 
-    def load_model(self, filepath='./models/change_detection.h5'):
+    def load_model(self, filepath='./models/change_detection.keras'):
         """
         Load pre-trained model weights
         

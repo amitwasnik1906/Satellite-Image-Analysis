@@ -304,7 +304,7 @@ def main():
     os.makedirs('./results', exist_ok=True)
     
     # Check if model exists, if not, train it
-    model_path = './models/change_detection.h5'
+    model_path = './models/change_detection.keras'
     if not os.path.exists(model_path):
         print("Model not found. Please run train_model.py first.")
         return
