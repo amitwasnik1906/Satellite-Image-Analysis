@@ -7,11 +7,18 @@ from datetime import datetime
 from bson.objectid import ObjectId
 import sys
 import os
+from dotenv import load_dotenv
+import cloudinary
+import cloudinary.uploader
+import cloudinary.api
 
-# Add the parent directory to sys.path so Python can find the module
+load_dotenv()
+# Load environment variables from .env file
+
+# Add the parent directory to sys.path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# Now you can import from change_detection
+# Import from change_detection
 from change_detection import HighResolutionChangeDetector
 
 app = FastAPI()
@@ -25,11 +32,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# MongoDB Connection
-client = MongoClient("mongodb://localhost:27017")
+# MongoDB Connection - Use environment variable
+mongodb_url = os.getenv("MONGODB_URL")
+client = MongoClient(mongodb_url)
 db = client["land_analysis"]
 analysis_collection = db["analysis_history"]
 regions_collection = db["available_regions"]
+
+cloudinary.config(
+    cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
+    api_key=os.getenv("CLOUDINARY_API_KEY"),
+    api_secret=os.getenv("CLOUDINARY_API_SECRET"),
+    secure=True
+)
 
 # Models
 class RegionModel(BaseModel):
@@ -42,9 +57,10 @@ class AnalysisHistoryModel(BaseModel):
     input_type: str = "user_uploaded" or "predefined_region"  # Enum type
     before_image_year: int
     after_image_year: int
-    output_image: str
+    cloud_vis_url: str
+    cloud_change_map_url: str
     analysis: dict
-    created_at: str
+    created_at: datetime = Field(default_factory=datetime.now)
 
 # API Endpoints Request
 class PredefinedRegionRequest(BaseModel):
@@ -59,13 +75,15 @@ class PredefinedRegionRequest(BaseModel):
 
 # API Endpoints Response
 class AnalysisHistoryResponse(BaseModel):
+    id: str = Field(alias="_id") 
     user_id: str
     input_type: str
     before_image_year: int
     after_image_year: int
-    output_image: str
+    cloud_vis_url: str
+    cloud_change_map_url: str
     analysis: dict
-    created_at: str
+    created_at: datetime
 
 class RegionResponse(BaseModel):
     id: str = Field(alias="_id")  # Changed type to str and use alias
@@ -75,6 +93,44 @@ class RegionResponse(BaseModel):
     
     class Config:
         allow_population_by_field_name = True  # Allows both _id and id to be used
+
+
+# function for upload image to cloudinary
+def upload_to_cloudinary(image_path, folder="land_analysis"):
+    """
+    Upload an image to Cloudinary and return the URL.
+    
+    Args:
+        image_path (str): Path to the image file
+        folder (str): Cloudinary folder to upload to
+        
+    Returns:
+        str: URL of the uploaded image
+    """
+    try:
+        # Check if Cloudinary configuration is set
+        if not cloudinary.config().cloud_name:
+            # Configure Cloudinary if not already done
+            cloudinary.config(
+                cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
+                api_key=os.getenv("CLOUDINARY_API_KEY"),
+                api_secret=os.getenv("CLOUDINARY_API_SECRET"),
+                secure=True
+            )
+        
+        # Upload the image
+        upload_result = cloudinary.uploader.upload(
+            image_path,
+            folder=folder,
+            resource_type="image"
+        )
+        
+        # Return the URL
+        return upload_result["secure_url"]
+    
+    except Exception as e:
+        print(f"Error uploading to Cloudinary: {str(e)}")
+        raise e
 
 
 # ✅ Route: Home
@@ -94,6 +150,7 @@ async def get_available_regions():
     
     return regions
 
+
 # ✅ Route: Add Available Region
 @app.post("/available-regions", status_code=201)
 async def add_available_region(region: RegionModel):
@@ -104,7 +161,7 @@ async def add_available_region(region: RegionModel):
             raise HTTPException(status_code=400, detail="Region with this name already exists")
         
         # Insert new region
-        regions_collection.insert_one(region.dict())
+        regions_collection.insert_one(region.model_dump())
         return {"message": "Region added successfully"}
     
     except HTTPException as he:
@@ -175,15 +232,39 @@ async def analyze_predefined_region(request: PredefinedRegionRequest):
         print(f"Visualization saved to: {vis_path}")
         print(f"Change map saved to: {change_map_path}")
 
-        # Add Cloudinary here & delete the image from the server
+        # Upload visualization to Cloudinary
+        cloud_vis_url = upload_to_cloudinary(vis_path)
+        cloud_change_map_url = upload_to_cloudinary(change_map_path)
+        print("Images uploaded to Cloudinary")
+
+        # Delete local files after upload
+        os.remove(vis_path)
+        os.remove(change_map_path)
+        print("Images removed from server")
+
+        # Create a new analysis history record
+        analysis_record = AnalysisHistoryModel(
+            user_id="1",  # Using user_id 1 as specified
+            input_type="predefined_region",
+            before_image_year=request.before_image_year,
+            after_image_year=request.after_image_year,
+            cloud_vis_url=cloud_vis_url,
+            cloud_change_map_url=cloud_change_map_url,
+            analysis={
+                "change_percentages": results['change_percentages']
+            }
+        )
         
-        # Add results to the response
+        # Insert the record into MongoDB
+        analysis_collection.insert_one(analysis_record.model_dump())
+
+        # Update region results with Cloudinary URLs
         region["results"] = {
-            "visualization_path": vis_path,
-            "change_map_path": change_map_path,
+            "visualization_url": cloud_vis_url,
+            "change_map_url": cloud_change_map_url,
             "change_percentages": results['change_percentages']
         }
-        
+
         # Return proper response
         return {
             "message": "Analysis started successfully",
@@ -204,7 +285,29 @@ async def analyze_predefined_region(request: PredefinedRegionRequest):
 @app.get("/history/{user_id}", response_model=List[AnalysisHistoryResponse])
 async def get_user_history(user_id: str):
     try:
-        return user_id
+        # Find all analysis records for the given user_id
+        history_records = list(analysis_collection.find({"user_id": user_id}))
+        
+        # Format the results to match the response model
+        formatted_records = []
+        for record in history_records:
+            record["_id"] = str(record["_id"])
+            
+            # Create a properly formatted record that matches AnalysisHistoryResponse
+            formatted_record = {
+                "_id": record["_id"],  # Using _id as alias for id
+                "user_id": record["user_id"],
+                "input_type": record["input_type"],
+                "before_image_year": record["before_image_year"],
+                "after_image_year": record["after_image_year"],
+                "cloud_vis_url": record["cloud_vis_url"],
+                "cloud_change_map_url": record["cloud_change_map_url"],
+                "analysis": record["analysis"],
+                "created_at": record["created_at"]
+            }
+            formatted_records.append(formatted_record)
+        
+        return formatted_records
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
