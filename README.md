@@ -1,4 +1,4 @@
-# EuroSAT Satellite Image Change Detection
+# Satellite Image Change Detection for Land Transformation
 
 ## Project Overview
 Detect and analyze land cover changes using the EuroSAT dataset with deep learning.

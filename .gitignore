@@ -4,3 +4,5 @@ __pycache__/
 models/
 results/
 venv
+images/
+_backend/img
