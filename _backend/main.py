@@ -117,6 +117,7 @@ def upload_to_cloudinary(image_path, folder="land_analysis"):
                 api_secret=os.getenv("CLOUDINARY_API_SECRET"),
                 secure=True
             )
+            
         
         # Upload the image
         upload_result = cloudinary.uploader.upload(

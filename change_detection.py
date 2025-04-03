@@ -272,28 +272,105 @@ class HighResolutionChangeDetector:
         plt.savefig(output_path, dpi=300, bbox_inches='tight')
         plt.close()
         
-        # Create a separate high-resolution change map (original style with single color)
+        # # Create a separate high-resolution change map (original style with single color)
+        # plt.figure(figsize=(15, 10))
+        
+        # # Create a new axis for the image
+        # ax = plt.gca()
+        # plt.title('Land Use Change Map', fontsize=16)
+        # im = ax.imshow(change_highlighted)
+        # plt.axis('off')
+        
+        # # Add color bar for changes
+        # cmap = LinearSegmentedColormap.from_list('change_cmap', ['white', 'red'])
+        # sm = plt.cm.ScalarMappable(cmap=cmap)
+        # sm.set_array([])
+        
+        # cbar = plt.colorbar(sm, ax=ax, orientation='horizontal', pad=0.05)
+        # cbar.set_label('Change Intensity')
+        
+        # change_map_path = os.path.splitext(output_path)[0] + "_change_map.jpg"
+        # plt.savefig(change_map_path, dpi=300, bbox_inches='tight')
+        # plt.close()
+
+        # Create a specialized visualization highlighting deforestation, urbanization, and water body changes
         plt.figure(figsize=(15, 10))
         
         # Create a new axis for the image
         ax = plt.gca()
-        plt.title('Land Use Change Map', fontsize=16)
-        im = ax.imshow(change_highlighted)
+        plt.title('Critical Environmental Changes', fontsize=16)
+        
+        # Create a mask for each critical change type
+        deforestation_mask = np.zeros_like(results['change_map'], dtype=bool)
+        urbanization_mask = np.zeros_like(results['change_map'], dtype=bool)
+        water_change_mask = np.zeros_like(results['change_map'], dtype=bool)
+        
+        # Identify the class indices for forest, urban, and water classes
+        forest_indices = [i for i, class_name in enumerate(self.classes) if 'forest' in class_name.lower()]
+        urban_indices = [i for i, class_name in enumerate(self.classes) if 'urban' in class_name.lower() or 'residential' in class_name.lower() or 'industrial' in class_name.lower()]
+        water_indices = [i for i, class_name in enumerate(self.classes) if 'water' in class_name.lower() or 'river' in class_name.lower() or 'lake' in class_name.lower()]
+        
+        # Detect deforestation (forest to non-forest)
+        for i in forest_indices:
+            for j in range(len(self.classes)):
+                if i != j and j not in forest_indices:
+                    deforestation_mask |= (results['class_map1'] == i) & (results['class_map2'] == j)
+        
+        # Detect urbanization (non-urban to urban)
+        for i in range(len(self.classes)):
+            for j in urban_indices:
+                if i != j and i not in urban_indices:
+                    urbanization_mask |= (results['class_map1'] == i) & (results['class_map2'] == j)
+        
+        # Detect water body changes (water to non-water or non-water to water)
+        for i in range(len(self.classes)):
+            for j in range(len(self.classes)):
+                if (i in water_indices and j not in water_indices) or (i not in water_indices and j in water_indices):
+                    water_change_mask |= (results['class_map1'] == i) & (results['class_map2'] == j)
+        
+        # Create a combined RGB image to highlight different change types
+        critical_changes = np.zeros((*results['change_map'].shape, 3), dtype=np.uint8)
+        critical_changes[deforestation_mask] = [255, 150, 150]  # Lighter red for deforestation
+        critical_changes[urbanization_mask] = [200, 150, 255]  # Light purple for urbanization
+        critical_changes[water_change_mask] = [150, 150, 255]  # Lighter blue for water changes
+        
+        # Overlay on the second image with transparency
+        alpha = 0.5  # Reduced alpha for lighter overlay
+        overlay = results['image2'].copy()
+        mask = deforestation_mask | urbanization_mask | water_change_mask
+        overlay[mask] = cv2.addWeighted(results['image2'][mask], 1-alpha, critical_changes[mask], alpha, 0)
+        
+        # Display the image
+        plt.imshow(overlay)
         plt.axis('off')
         
-        # Add color bar for changes
-        cmap = LinearSegmentedColormap.from_list('change_cmap', ['white', 'red'])
-        sm = plt.cm.ScalarMappable(cmap=cmap)
-        sm.set_array([])
+        # Create legend
+        legend_elements = [
+            plt.Line2D([0], [0], marker='s', color='w', markerfacecolor=(1, 0.59, 0.59), markersize=10, label='Deforestation'),
+            plt.Line2D([0], [0], marker='s', color='w', markerfacecolor=(0.78, 0.59, 1), markersize=10, label='Urbanization'),
+            plt.Line2D([0], [0], marker='s', color='w', markerfacecolor=(0.59, 0.59, 1), markersize=10, label='Water Body Changes')
+        ]
+        plt.legend(handles=legend_elements, loc='lower right', fontsize=10)
         
-        cbar = plt.colorbar(sm, ax=ax, orientation='horizontal', pad=0.05)
-        cbar.set_label('Change Intensity')
+        # Add statistics in a text box
+        stats_text = (
+            f"Deforestation: {np.sum(deforestation_mask) / deforestation_mask.size * 100:.2f}%\n"
+            f"Urbanization: {np.sum(urbanization_mask) / urbanization_mask.size * 100:.2f}%\n"
+            f"Water Changes: {np.sum(water_change_mask) / water_change_mask.size * 100:.2f}%"
+        )
         
-        change_map_path = os.path.splitext(output_path)[0] + "_change_map.jpg"
-        plt.savefig(change_map_path, dpi=300, bbox_inches='tight')
+        props = dict(boxstyle='round', facecolor='white', alpha=0.7)
+        ax.text(0.05, 0.05, stats_text, transform=ax.transAxes, fontsize=10,
+                verticalalignment='bottom', horizontalalignment='left',
+                bbox=props)
+        
+        # Save the critical changes map
+        critical_map_path = os.path.splitext(output_path)[0] + "_critical_changes.jpg"
+        plt.savefig(critical_map_path, dpi=300, bbox_inches='tight')
         plt.close()
         
-        return output_path, change_map_path
+        
+        return output_path, critical_map_path
 
 def main():
     """

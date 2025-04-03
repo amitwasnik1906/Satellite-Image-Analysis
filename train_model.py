@@ -34,7 +34,7 @@ def train_eurosat_model(dataset_path='./dataset/EuroSAT',
     history = change_detection_model.train(
         train_generator, 
         validation_generator, 
-        epochs=30
+        epochs=50
     )
     
     # Save model
