@@ -73,7 +73,7 @@ class EuroSATChangeDetectionModel:
         """
         early_stopping = tf.keras.callbacks.EarlyStopping(
             monitor='val_loss', 
-            patience=10, 
+            patience=25, 
             restore_best_weights=True
         )
 
