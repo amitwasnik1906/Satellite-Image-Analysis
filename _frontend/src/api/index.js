@@ -21,9 +21,9 @@ export const getAvailableRegions = async() => {
 }
 
 // Analysis API
-export const analyzePredefinedRegion = async(analysisData) => {
+export const analyzePredefinedRegion = async(analysisData, userId) => {
     try {
-        const response = await api.post("/analysis/predefined_region", analysisData)
+        const response = await api.post(`/analysis/predefined_region/${userId}`, analysisData)
         return response.data
     } catch (error) {
         console.error("Error analyzing region:", error)

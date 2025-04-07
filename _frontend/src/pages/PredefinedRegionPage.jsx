@@ -5,7 +5,8 @@ import { Map, Calendar, AlertCircle } from "lucide-react"
 import LoadingSpinner from "../components/LoadingSpinner"
 import RegionCard from "../components/RegionCard"
 import AnalysisResult from "../components/AnalysisResult"
-import { getAvailableRegions } from "../api/index"
+import { getAvailableRegions, analyzePredefinedRegion } from "../api/index"
+import { useUser } from "@clerk/clerk-react"
 
 const PredefinedRegionPage = () => {
   const [regions, setRegions] = useState([])
@@ -16,6 +17,7 @@ const PredefinedRegionPage = () => {
   const [fetchingRegions, setFetchingRegions] = useState(true)
   const [error, setError] = useState(null)
   const [result, setResult] = useState(null)
+  const { user } = useUser();
 
   // Available years for demonstration
   const availableYears = ["2013", "2015", "2018", "2020", "2022", "2025"]
@@ -23,9 +25,9 @@ const PredefinedRegionPage = () => {
   useEffect(() => {
     const fetchRegions = async () => {
       try {
-        const available_regions_from_api = await getAvailableRegions()   
+        const available_regions_from_api = await getAvailableRegions()
         setRegions(available_regions_from_api)
-        
+
       } catch (err) {
         setError("Failed to fetch available regions")
         console.error(err)
@@ -63,18 +65,92 @@ const PredefinedRegionPage = () => {
     setError(null)
 
     try {
-      // In a real implementation, this would call your API
-      // const data = await analyzePredefinedRegion({
-      //   _id: selectedRegion._id,
-      //   folder: selectedRegion.folder,
-      //   before_image_year: parseInt(beforeYear),
-      //   after_image_year: parseInt(afterYear)
-      // })
-
-      // Simulate API call
       console.log("clicked");
-      
-      
+
+      // const data = {
+      //   "message": "Analysis started successfully",
+      //   "analysis": {
+      //     "user_id": "\"1\"",
+      //     "input_type": "predefined_region",
+      //     "before_image_year": 2013,
+      //     "after_image_year": 2025,
+      //     "cloud_vis_url": "https://res.cloudinary.com/dq5mzbtzt/image/upload/v1744049948/land_analysis/uxfwlg5vnpynwurxstcv.jpg",
+      //     "cloud_change_map_url": "https://res.cloudinary.com/dq5mzbtzt/image/upload/v1744049949/land_analysis/fmisr6tbpm36mevs0sds.jpg",
+      //     "analysis": {
+      //       "change_percentages": [
+      //         {
+      //           "class": "AnnualCrop",
+      //           "change": -48.97530864197531,
+      //           "initial": 49.76543209876543,
+      //           "final": 0.7901234567901235
+      //         },
+      //         {
+      //           "class": "Forest",
+      //           "change": 0.4074074074074074,
+      //           "initial": 0,
+      //           "final": 0.4074074074074074
+      //         },
+      //         {
+      //           "class": "HerbaceousVegetation",
+      //           "change": -4.148148148148145,
+      //           "initial": 34.5679012345679,
+      //           "final": 30.419753086419753
+      //         },
+      //         {
+      //           "class": "Industrial",
+      //           "change": 0.1728395061728395,
+      //           "initial": 0.14814814814814814,
+      //           "final": 0.32098765432098764
+      //         },
+      //         {
+      //           "class": "Pasture",
+      //           "change": -0.30864197530864196,
+      //           "initial": 0.30864197530864196,
+      //           "final": 0
+      //         },
+      //         {
+      //           "class": "PermanentCrop",
+      //           "change": 25.037037037037035,
+      //           "initial": 6.91358024691358,
+      //           "final": 31.950617283950617
+      //         },
+      //         {
+      //           "class": "Residential",
+      //           "change": 32.55555555555556,
+      //           "initial": 3.432098765432099,
+      //           "final": 35.98765432098766
+      //         },
+      //         {
+      //           "class": "SeaLake",
+      //           "change": -4.740740740740741,
+      //           "initial": 4.864197530864198,
+      //           "final": 0.12345679012345678
+      //         }
+      //       ],
+      //       "critical_changes": {
+      //         "deforestation": 0,
+      //         "urbanization": 33.34567901234568,
+      //         "water_changes": 4.839506172839506
+      //       }
+      //     },
+      //     "created_at": "2025-04-07T23:49:08.066398"
+      //   }
+      // }
+
+      // await new Promise(resolve => setTimeout(resolve, 5000));
+
+
+      const data = await analyzePredefinedRegion({
+        _id: selectedRegion._id,
+        folder: selectedRegion.folder,
+        before_image_year: parseInt(beforeYear),
+        after_image_year: parseInt(afterYear)
+      },
+        user.id
+      )
+
+      setResult(data)
+
     } catch (err) {
       setError("An error occurred during analysis. Please try again.")
       console.error(err)
@@ -116,6 +192,17 @@ const PredefinedRegionPage = () => {
             ))}
           </div>
         </>
+      ) : loading ? (
+        <div className="flex flex-col items-center py-12">
+          <LoadingSpinner message="Analyzing region..." />
+
+          <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200 shadow-sm text-center">
+            <p className="text-gray-700 font-medium">This analysis takes a while, please do not refresh the page.</p>
+            <p className="mt-3 text-sm text-gray-500 italic">
+              Don't worry! Even if you refresh, you can find your analysis results in the History section.
+            </p>
+          </div>
+        </div>
       ) : !result ? (
         <div className="bg-white rounded-lg shadow-md p-6">
           <div className="flex items-center justify-between mb-6">
@@ -187,24 +274,19 @@ const PredefinedRegionPage = () => {
                 disabled={loading}
                 className="btn-primary flex items-center justify-center min-w-[200px]"
               >
-                {loading ? (
-                  <LoadingSpinner size="small" message="Analyzing..." />
-                ) : (
-                  <>
-                    <Map className="mr-2 h-5 w-5" />
-                    Analyze Region
-                  </>
-                )}
+                <Map className="mr-2 h-5 w-5" />
+                Analyze Region
               </button>
             </div>
           </form>
         </div>
       ) : (
-        <AnalysisResult />
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <AnalysisResult selectedAnalysis={result.analysis} />
+        </div>
       )}
     </div>
   )
 }
 
 export default PredefinedRegionPage
-

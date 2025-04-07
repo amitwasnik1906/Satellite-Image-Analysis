@@ -18,7 +18,7 @@ const HistoryPage = () => {
     const fetchHistory = async () => {
       try {
         setLoading(true)
-        const userId = user?.id || "1" // Default to "1" if user ID not available
+        const userId = user?.id  // Default to "1" if user ID not available
         const historyData = await getUserHistory(userId)
         setHistory(historyData)
         setLoading(false)

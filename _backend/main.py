@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pymongo import MongoClient
 from pydantic import BaseModel, Field
@@ -172,10 +172,11 @@ async def add_available_region(region: RegionModel):
 
 
 # ✅ Route: Analyze Predefined Region
-@app.post("/analysis/predefined_region")
-async def analyze_predefined_region(request: PredefinedRegionRequest):
+@app.post("/analysis/predefined_region/{user_id}")
+async def analyze_predefined_region(request: PredefinedRegionRequest, user_id: str):
     try:
         # Convert string ID to ObjectId
+        print(user_id)
         obj_instance = ObjectId(request.id)
         
         # Find the region
@@ -246,7 +247,7 @@ async def analyze_predefined_region(request: PredefinedRegionRequest):
 
         # Create a new analysis history record
         analysis_record = AnalysisHistoryModel(
-            user_id="1",  # Using user_id 1 as specified
+            user_id= user_id,  # Using user_id 1 as specified
             input_type="predefined_region",
             before_image_year=request.before_image_year,
             after_image_year=request.after_image_year,
@@ -261,17 +262,9 @@ async def analyze_predefined_region(request: PredefinedRegionRequest):
         # Insert the record into MongoDB
         analysis_collection.insert_one(analysis_record.model_dump())
 
-        # Update region results with Cloudinary URLs
-        region["results"] = {
-            "visualization_url": cloud_vis_url,
-            "change_map_url": cloud_change_map_url,
-            "change_percentages": results['change_percentages']
-        }
-
         # Return proper response
         return {
             "message": "Analysis started successfully",
-            "region": region,
             "analysis": analysis_record
         }
     
