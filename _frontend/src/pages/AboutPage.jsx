@@ -95,52 +95,43 @@ const AboutPage = () => {
       </div>
 
       <div className="bg-white rounded-lg shadow-md p-6">
-        <h2 className="text-2xl font-bold text-gray-800 mb-4">Meet the Team</h2>
+        <h2 className="text-2xl font-bold text-gray-800 mb-8">Meet the Team</h2>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="text-center">
-            <div className="w-24 h-24 bg-gray-200 rounded-full mx-auto mb-4 flex items-center justify-center">
-              <Users className="h-12 w-12 text-gray-400" />
-            </div>
-            <h3 className="text-lg font-semibold">John Doe</h3>
-            <p className="text-gray-600 mb-2">Lead Developer</p>
+            <img src="amit.jpg" alt="Team Member" className="w-36 h-36 bg-gray-200 rounded-full mx-auto mb-4 flex items-center justify-center" />
+            <h3 className="text-lg font-semibold">Amit Wasnik</h3>
             <div className="flex justify-center space-x-2">
-              <a href="#" className="text-gray-500 hover:text-gray-700">
+              <a href="https://github.com/amitwasnik1906" className="text-gray-500 hover:text-gray-700">
                 <Github className="h-5 w-5" />
               </a>
-              <a href="#" className="text-gray-500 hover:text-gray-700">
+              <a href="https://www.linkedin.com/in/amit-wasnik-55448a263/" className="text-gray-500 hover:text-gray-700">
                 <Linkedin className="h-5 w-5" />
               </a>
             </div>
           </div>
 
           <div className="text-center">
-            <div className="w-24 h-24 bg-gray-200 rounded-full mx-auto mb-4 flex items-center justify-center">
-              <Users className="h-12 w-12 text-gray-400" />
-            </div>
-            <h3 className="text-lg font-semibold">Jane Smith</h3>
-            <p className="text-gray-600 mb-2">AI Researcher</p>
+            <img src="ganesh.jpg" alt="Team Member" className="w-36 h-36 bg-gray-200 rounded-full mx-auto mb-4 flex items-center justify-center" />
+            <h3 className="text-lg font-semibold">Ganesh Chavhan</h3>
             <div className="flex justify-center space-x-2">
-              <a href="#" className="text-gray-500 hover:text-gray-700">
+              <a href="https://github.com/Ganesh-Chavhan" className="text-gray-500 hover:text-gray-700">
                 <Github className="h-5 w-5" />
               </a>
-              <a href="#" className="text-gray-500 hover:text-gray-700">
+              <a href="https://www.linkedin.com/in/ganeshchavhan9274/" className="text-gray-500 hover:text-gray-700">
                 <Linkedin className="h-5 w-5" />
               </a>
             </div>
           </div>
 
           <div className="text-center">
-            <div className="w-24 h-24 bg-gray-200 rounded-full mx-auto mb-4 flex items-center justify-center">
-              <Users className="h-12 w-12 text-gray-400" />
-            </div>
-            <h3 className="text-lg font-semibold">Alex Johnson</h3>
-            <p className="text-gray-600 mb-2">GIS Specialist</p>
+            <img src="ayush.jpeg" alt="Team Member" className="w-36 h-36 bg-gray-200 rounded-full mx-auto mb-4 flex items-center justify-center" />
+            <h3 className="text-lg font-semibold">Ayush Nikhade</h3>
             <div className="flex justify-center space-x-2">
-              <a href="#" className="text-gray-500 hover:text-gray-700">
+              <a href="https://github.com/AyushNikhade" className="text-gray-500 hover:text-gray-700">
                 <Github className="h-5 w-5" />
               </a>
-              <a href="#" className="text-gray-500 hover:text-gray-700">
+              <a href="https://www.linkedin.com/in/ayushnikhade04/" className="text-gray-500 hover:text-gray-700">
                 <Linkedin className="h-5 w-5" />
               </a>
             </div>
