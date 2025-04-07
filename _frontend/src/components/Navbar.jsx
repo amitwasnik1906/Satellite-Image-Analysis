@@ -14,7 +14,7 @@ const Navbar = () => {
 
   const navigation = [
     { name: "Home", href: "/" },
-    // { name: "Upload Images", href: "/upload" },
+    { name: "Upload Images", href: "/upload" },
     { name: "Predefined Regions", href: "/predefined-regions" },
     { name: "History", href: "/history" },
     { name: "About", href: "/about" },

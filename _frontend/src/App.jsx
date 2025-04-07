@@ -1,5 +1,4 @@
 import { Routes, Route } from "react-router-dom"
-import { AnalysisProvider } from "./context/AnalysisContext"
 import Navbar from "./components/Navbar"
 import Footer from "./components/Footer"
 import HomePage from "./pages/HomePage"
@@ -23,7 +22,6 @@ function App() {
   return (
     <ClerkProvider publishableKey={PUBLISHABLE_KEY} afterSignOutUrl="/">
 
-      <AnalysisProvider>
         <div className="flex flex-col min-h-screen">
           <Navbar />
           <main className="flex-grow container mx-auto px-4 py-8">
@@ -61,7 +59,6 @@ function App() {
           </main>
           <Footer />
         </div>
-      </AnalysisProvider>
 
     </ClerkProvider>
   )
