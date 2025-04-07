@@ -1,38 +1,53 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Calendar, Clock, MapPin, AlertCircle, ExternalLink } from "lucide-react"
 import LoadingSpinner from "../components/LoadingSpinner"
 import AnalysisResult from "../components/AnalysisResult"
-import { useAnalysis } from "../context/AnalysisContext"
+import { getUserHistory } from "../api"
+import { useUser } from "@clerk/clerk-react"
 
 const HistoryPage = () => {
-  const { history, loading, error } = useAnalysis()
   const [selectedAnalysis, setSelectedAnalysis] = useState(null)
+  const [history, setHistory] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const { user } = useUser()
 
-  const formatDate = (dateString) => {
-    const date = new Date(dateString)
-    return date.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    })
-  }
+  useEffect(() => {
+    const fetchHistory = async () => {
+      try {
+        setLoading(true)
+        const userId = user?.id || "1" // Default to "1" if user ID not available
+        const historyData = await getUserHistory(userId)
+        setHistory(historyData)
+        setLoading(false)
+      } catch (err) {
+        console.error("Error fetching history:", err)
+        setError("Failed to load analysis history. Please try again later.")
+        setLoading(false)
+      }
+    }
 
-  const formatTime = (dateString) => {
-    const date = new Date(dateString)
-    return date.toLocaleTimeString("en-US", {
-      hour: "2-digit",
-      minute: "2-digit",
-    })
-  }
+    fetchHistory()
+  }, [user])
 
-  const handleRowClick = (analysis) => {
-    setSelectedAnalysis(analysis)
+  const handleRowClick = (item) => {
+    setSelectedAnalysis(item)
   }
 
   const closeDetails = () => {
     setSelectedAnalysis(null)
+  }
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString)
+    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+  }
+
+  const formatTime = (dateString) => {
+    const date = new Date(dateString)
+    return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
   }
 
   return (
@@ -124,10 +139,12 @@ const HistoryPage = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">
-                        Urban: {item.analysis.change_percentages.urbanization}%
+                        Urban: {((item.analysis.critical_changes?.urbanization || 
+                                item.analysis.change_percentages?.urbanization || 0)).toFixed(2)}%
                       </div>
                       <div className="text-sm text-gray-500">
-                        Forest: {item.analysis.change_percentages.deforestation}%
+                        Forest: {((item.analysis.critical_changes?.deforestation || 
+                                 item.analysis.change_percentages?.deforestation || 0)).toFixed(2)}%
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -186,14 +203,7 @@ const HistoryPage = () => {
           </div>
 
           <AnalysisResult
-            result={{
-              change_map_url: selectedAnalysis.cloud_change_map_url,
-              change_percentages: selectedAnalysis.analysis.change_percentages,
-            }}
-            beforeImage={selectedAnalysis.cloud_vis_url}
-            afterImage={selectedAnalysis.cloud_change_map_url}
-            beforeYear={selectedAnalysis.before_image_year}
-            afterYear={selectedAnalysis.after_image_year}
+            selectedAnalysis= {selectedAnalysis}
           />
         </div>
       )}
@@ -202,4 +212,3 @@ const HistoryPage = () => {
 }
 
 export default HistoryPage
-

@@ -271,27 +271,6 @@ class HighResolutionChangeDetector:
         plt.tight_layout()
         plt.savefig(output_path, dpi=300, bbox_inches='tight')
         plt.close()
-        
-        # # Create a separate high-resolution change map (original style with single color)
-        # plt.figure(figsize=(15, 10))
-        
-        # # Create a new axis for the image
-        # ax = plt.gca()
-        # plt.title('Land Use Change Map', fontsize=16)
-        # im = ax.imshow(change_highlighted)
-        # plt.axis('off')
-        
-        # # Add color bar for changes
-        # cmap = LinearSegmentedColormap.from_list('change_cmap', ['white', 'red'])
-        # sm = plt.cm.ScalarMappable(cmap=cmap)
-        # sm.set_array([])
-        
-        # cbar = plt.colorbar(sm, ax=ax, orientation='horizontal', pad=0.05)
-        # cbar.set_label('Change Intensity')
-        
-        # change_map_path = os.path.splitext(output_path)[0] + "_change_map.jpg"
-        # plt.savefig(change_map_path, dpi=300, bbox_inches='tight')
-        # plt.close()
 
         # Create a specialized visualization highlighting deforestation, urbanization, and water body changes
         plt.figure(figsize=(15, 10))
@@ -369,8 +348,19 @@ class HighResolutionChangeDetector:
         plt.savefig(critical_map_path, dpi=300, bbox_inches='tight')
         plt.close()
         
+        # Calculate critical change percentages
+        deforestation_percent = np.sum(deforestation_mask) / deforestation_mask.size * 100
+        urbanization_percent = np.sum(urbanization_mask) / urbanization_mask.size * 100
+        water_change_percent = np.sum(water_change_mask) / water_change_mask.size * 100
         
-        return output_path, critical_map_path
+        # Add critical changes to the results
+        critical_changes = {
+            "deforestation": deforestation_percent,
+            "urbanization": urbanization_percent,
+            "water_changes": water_change_percent
+        }
+        
+        return output_path, critical_map_path, critical_changes
 
 def main():
     """
@@ -390,8 +380,8 @@ def main():
     detector = HighResolutionChangeDetector(model_path)
     
     # Get input paths
-    image1_path = './images/ngp/2013.jpg'
-    image2_path = './images/ngp/2025.jpg'
+    image1_path = './images/amit/2013.jpg'
+    image2_path = './images/amit/2025.jpg'
     
     # Detect changes
     print("Detecting changes between images...")
@@ -407,7 +397,7 @@ def main():
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     output_path = f'./results/change_detection_result_{timestamp}.jpg'
     
-    vis_path, change_map_path = detector.generate_change_visualization(results, output_path)
+    vis_path, change_map_path, critical_changes = detector.generate_change_visualization(results, output_path)
     
     print(f"Change detection complete!")
     print(f"Full visualization saved to: {vis_path}")
@@ -418,6 +408,12 @@ def main():
     for change in results['change_percentages']:
         sign = "+" if change['change'] > 0 else ""
         print(f"- {change['class']}: {sign}{change['change']:.1f}% (from {change['initial']:.1f}% to {change['final']:.1f}%)")
+    
+    # Summary of critical changes
+    print("\nCritical changes detected:")
+    print(f"- Deforestation: {critical_changes['deforestation']:.2f}%")
+    print(f"- Urbanization: {critical_changes['urbanization']:.2f}%")
+    print(f"- Water changes: {critical_changes['water_changes']:.2f}%")
 
 if __name__ == '__main__':
     main()

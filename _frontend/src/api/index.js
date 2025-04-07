@@ -1,6 +1,6 @@
 import axios from "axios"
 
-const API_URL = "http://localhost:8000"
+const API_URL = import.meta.env.VITE_BACKEND_DOMAIN
 
 const api = axios.create({
     baseURL: API_URL,
@@ -16,16 +16,6 @@ export const getAvailableRegions = async() => {
         return response.data
     } catch (error) {
         console.error("Error fetching regions:", error)
-        throw error
-    }
-}
-
-export const addPredefinedRegion = async(regionData) => {
-    try {
-        const response = await api.post("/available-regions", regionData)
-        return response.data
-    } catch (error) {
-        console.error("Error adding region:", error)
         throw error
     }
 }

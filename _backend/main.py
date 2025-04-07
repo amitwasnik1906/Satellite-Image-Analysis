@@ -227,11 +227,12 @@ async def analyze_predefined_region(request: PredefinedRegionRequest):
         # Create img directory if it doesn't exist
         os.makedirs(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'img'), exist_ok=True)
         
-        vis_path, change_map_path = detector.generate_change_visualization(results, output_path)
+        vis_path, change_map_path, critical_changes = detector.generate_change_visualization(results, output_path)
         
         print(f"Change detection complete for {region['name']}")
         print(f"Visualization saved to: {vis_path}")
         print(f"Change map saved to: {change_map_path}")
+
 
         # Upload visualization to Cloudinary
         cloud_vis_url = upload_to_cloudinary(vis_path)
@@ -252,7 +253,8 @@ async def analyze_predefined_region(request: PredefinedRegionRequest):
             cloud_vis_url=cloud_vis_url,
             cloud_change_map_url=cloud_change_map_url,
             analysis={
-                "change_percentages": results['change_percentages']
+                "change_percentages": results['change_percentages'],
+                "critical_changes": critical_changes
             }
         )
         
@@ -269,7 +271,8 @@ async def analyze_predefined_region(request: PredefinedRegionRequest):
         # Return proper response
         return {
             "message": "Analysis started successfully",
-            "region": region
+            "region": region,
+            "analysis": analysis_record
         }
     
     except Exception as e:

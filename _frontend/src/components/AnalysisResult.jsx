@@ -1,94 +1,155 @@
 // src/components/AnalysisResult.jsx
 import { CheckCircle } from 'lucide-react'
 
-const AnalysisResult = ({ result, beforeImage, afterImage, beforeYear, afterYear, onReset }) => {
+const AnalysisResult = ({ selectedAnalysis }) => {
+  const { analysis, before_image_year, after_image_year, cloud_vis_url, cloud_change_map_url } = selectedAnalysis || {};
+  
   return (
-    <div className="bg-white rounded-lg shadow-md p-6">
-      <div className="flex items-center justify-center mb-6 text-green-600">
-        <CheckCircle className="h-8 w-8 mr-2" />
-        <h2 className="text-2xl font-bold">Analysis Complete</h2>
-      </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-        <div>
-          <h3 className="text-lg font-semibold mb-2">Before Image {beforeYear && `(${beforeYear})`}</h3>
-          <img 
-            src={beforeImage || "/placeholder.svg"} 
-            alt="Before" 
-            className="w-full h-64 object-cover rounded-lg"
-          />
-        </div>
-        
-        <div>
-          <h3 className="text-lg font-semibold mb-2">After Image {afterYear && `(${afterYear})`}</h3>
-          <img 
-            src={afterImage || "/placeholder.svg"} 
-            alt="After" 
-            className="w-full h-64 object-cover rounded-lg"
-          />
-        </div>
-      </div>
-      
-      <div className="mb-6">
-        <h3 className="text-lg font-semibold mb-2">Change Detection Results</h3>
-        <div className="bg-gray-50 p-4 rounded-lg">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-white p-4 rounded-lg shadow-sm">
-              <h4 className="font-medium text-gray-700">Urbanization</h4>
-              <div className="mt-2 text-2xl font-bold text-green-600">
-                {result.change_percentages.urbanization}%
-              </div>
+    <div>
+      <div className="bg-white rounded-lg overflow-hidden">
+        <div className="">
+          <div className="flex items-center mb-4">
+            <CheckCircle className="h-6 w-6 text-green-500 mr-2" />
+            <h3 className="text-xl font-semibold text-gray-800">Analysis Results</h3>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div>
+              <h4 className="text-lg font-medium text-gray-700 mb-3">Change Percentages</h4>
+              {analysis?.critical_changes && (
+                <div className="space-y-3">
+                  <div>
+                    <div className="flex justify-between mb-1">
+                      <span className="text-sm font-medium text-gray-700">Urbanization</span>
+                      <span className="text-sm font-medium text-gray-700">
+                        {analysis.critical_changes.urbanization?.toFixed(2) || 0}%
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2.5">
+                      <div 
+                        className="bg-blue-600 h-2.5 rounded-full" 
+                        style={{ width: `${Math.min(100, Math.max(0, analysis.critical_changes.urbanization || 0))}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <div className="flex justify-between mb-1">
+                      <span className="text-sm font-medium text-gray-700">Deforestation</span>
+                      <span className="text-sm font-medium text-gray-700">
+                        {analysis.critical_changes.deforestation?.toFixed(2) || 0}%
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2.5">
+                      <div 
+                        className="bg-red-600 h-2.5 rounded-full" 
+                        style={{ width: `${Math.min(100, Math.max(0, analysis.critical_changes.deforestation || 0))}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <div className="flex justify-between mb-1">
+                      <span className="text-sm font-medium text-gray-700">Water Changes</span>
+                      <span className="text-sm font-medium text-gray-700">
+                        {analysis.critical_changes.water_changes?.toFixed(2) || 0}%
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2.5">
+                      <div 
+                        className="bg-cyan-600 h-2.5 rounded-full" 
+                        style={{ width: `${Math.min(100, Math.max(0, analysis.critical_changes.water_changes || 0))}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
             
-            <div className="bg-white p-4 rounded-lg shadow-sm">
-              <h4 className="font-medium text-gray-700">Deforestation</h4>
-              <div className="mt-2 text-2xl font-bold text-green-600">
-                {result.change_percentages.deforestation}%
-              </div>
-            </div>
-            
-            <div className="bg-white p-4 rounded-lg shadow-sm">
-              <h4 className="font-medium text-gray-700">Water Body Change</h4>
-              <div className="mt-2 text-2xl font-bold text-green-600">
-                {result.change_percentages.water_body_change}%
+            <div>
+              <h4 className="text-lg font-medium text-gray-700 mb-3">Time Period</h4>
+              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-md">
+                <div className="text-center">
+                  <span className="block text-sm text-gray-500">Before</span>
+                  <span className="block text-lg font-semibold">{before_image_year}</span>
+                </div>
+                <div className="text-gray-400">→</div>
+                <div className="text-center">
+                  <span className="block text-sm text-gray-500">After</span>
+                  <span className="block text-lg font-semibold">{after_image_year}</span>
+                </div>
+                <div className="text-center">
+                  <span className="block text-sm text-gray-500">Duration</span>
+                  <span className="block text-lg font-semibold">{after_image_year - before_image_year} years</span>
+                </div>
               </div>
             </div>
           </div>
+          
+          <div className="grid grid-cols-1 gap-6">
+            <div>
+              <h4 className="text-lg font-medium text-gray-700 mb-3">Changes in Region</h4>
+              {cloud_vis_url && (
+                <div className="border border-gray-200 rounded-lg overflow-hidden">
+                  <img 
+                    src={cloud_vis_url} 
+                    alt={`Satellite image from ${before_image_year} to ${after_image_year}`} 
+                    className="w-full h-auto object-cover"
+                  />
+                </div>
+              )}
+            </div>
+            
+            <div>
+              <h4 className="text-lg font-medium text-gray-700 mb-3">Critical Environmental Changes</h4>
+              {cloud_change_map_url && (
+                <div className="border border-gray-200 rounded-lg overflow-hidden">
+                  <img 
+                    src={cloud_change_map_url} 
+                    alt={`Change map from ${before_image_year} to ${after_image_year}`} 
+                    className="w-full h-auto object-cover"
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="mt-8">
+            <h4 className="text-lg font-medium text-gray-700 mb-3">Detailed Land Cover Changes</h4>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200 border border-gray-200 rounded-lg">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Land Cover Type</th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Initial (%)</th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Final (%)</th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Change (%)</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {analysis?.change_percentages && analysis.change_percentages.map((item, index) => (
+                    <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.class}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.initial.toFixed(2)}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.final.toFixed(2)}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          item.change > 0 
+                            ? 'bg-green-100 text-green-800' 
+                            : item.change < 0 
+                              ? 'bg-red-100 text-red-800' 
+                              : 'bg-gray-100 text-gray-800'
+                        }`}>
+                          {item.change > 0 ? '+' : ''}{item.change.toFixed(2)}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
-      </div>
-      
-      <div className="mb-6">
-        <h3 className="text-lg font-semibold mb-2">Change Visualization</h3>
-        <img 
-          src={result.change_map_url || "/placeholder.svg"} 
-          alt="Change Map" 
-          className="w-full h-64 object-cover rounded-lg"
-        />
-        <p className="mt-2 text-sm text-gray-500">
-          Areas highlighted in red indicate significant changes between the two images.
-        </p>
-      </div>
-      
-      <div className="flex justify-center space-x-4">
-        {onReset && (
-          <button
-            type="button"
-            onClick={onReset}
-            className="btn-secondary"
-          >
-            Analyze New Images
-          </button>
-        )}
-        <button
-          type="button"
-          className="btn-primary"
-          onClick={() => {
-            // In a real app, this would download a PDF report
-            alert('PDF report download would start here')
-          }}
-        >
-          Download Report
-        </button>
       </div>
     </div>
   )

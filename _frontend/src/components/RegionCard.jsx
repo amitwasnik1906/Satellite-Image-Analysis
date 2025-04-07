@@ -5,10 +5,10 @@ import { MapPin } from "lucide-react"
 const RegionCard = ({ region, onClick }) => {
   return (
     <div
-      className="card overflow-hidden cursor-pointer transform transition-transform hover:scale-105"
-      onClick={() => onClick(region)}
+      className="card overflow-hidden cursor-pointer transform transition-transform hover:scale-105 border border-gray-200 rounded-lg shadow-sm"
+        onClick={() => onClick(region)}
     >
-      <div className="h-48 overflow-hidden">
+      <div className=" h-56 overflow-hidden">
         <img
           src={region.sample_url || "/placeholder.svg?height=200&width=400"}
           alt={region.name}
@@ -20,7 +20,7 @@ const RegionCard = ({ region, onClick }) => {
           <MapPin className="h-5 w-5 text-green-600 mr-2" />
           <h3 className="text-lg font-semibold text-gray-800">{region.name}</h3>
         </div>
-        {region.folder && <p className="text-gray-600">Folder: {region.folder}</p>}
+        {/* {region.folder && <p className="text-gray-600">Folder: {region.folder}</p>} */}
       </div>
     </div>
   )

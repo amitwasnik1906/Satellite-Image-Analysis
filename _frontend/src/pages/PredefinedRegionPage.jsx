@@ -5,10 +5,9 @@ import { Map, Calendar, AlertCircle } from "lucide-react"
 import LoadingSpinner from "../components/LoadingSpinner"
 import RegionCard from "../components/RegionCard"
 import AnalysisResult from "../components/AnalysisResult"
-import { useAnalysis } from "../context/AnalysisContext"
+import { getAvailableRegions } from "../api/index"
 
 const PredefinedRegionPage = () => {
-  const { addAnalysis } = useAnalysis()
   const [regions, setRegions] = useState([])
   const [selectedRegion, setSelectedRegion] = useState(null)
   const [beforeYear, setBeforeYear] = useState("")
@@ -24,38 +23,9 @@ const PredefinedRegionPage = () => {
   useEffect(() => {
     const fetchRegions = async () => {
       try {
-        // In a real implementation, this would fetch from your API
-        // const data = await getAvailableRegions()
-
-        // For demo purposes, we'll use mock data
-        const mockRegions = [
-          {
-            _id: "1",
-            name: "Sample Bustard Area",
-            folder: "bustard",
-            sample_url: "/placeholder.svg?height=200&width=400",
-          },
-          {
-            _id: "2",
-            name: "Nagpur",
-            folder: "nagpur",
-            sample_url: "/placeholder.svg?height=200&width=400",
-          },
-          {
-            _id: "3",
-            name: "Jaisalmer",
-            folder: "jaisalmer",
-            sample_url: "/placeholder.svg?height=200&width=400",
-          },
-          {
-            _id: "4",
-            name: "Walchand Near Area",
-            folder: "walchand",
-            sample_url: "/placeholder.svg?height=200&width=400",
-          },
-        ]
-
-        setRegions(mockRegions)
+        const available_regions_from_api = await getAvailableRegions()   
+        setRegions(available_regions_from_api)
+        
       } catch (err) {
         setError("Failed to fetch available regions")
         console.error(err)
@@ -102,37 +72,9 @@ const PredefinedRegionPage = () => {
       // })
 
       // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 2000))
-
-      // Mock result
-      const analysisResult = {
-        visualization_url: "/placeholder.svg?height=400&width=600",
-        change_map_url: "/placeholder.svg?height=400&width=600",
-        change_percentages: {
-          urbanization: 12.5,
-          deforestation: 7.2,
-          water_body_change: 2.8,
-        },
-      }
-
-      setResult(analysisResult)
-
-      // Add to history
-      const newAnalysisRecord = {
-        _id: Date.now().toString(),
-        user_id: "1",
-        input_type: "predefined_region",
-        before_image_year: Number.parseInt(beforeYear),
-        after_image_year: Number.parseInt(afterYear),
-        cloud_vis_url: analysisResult.visualization_url,
-        cloud_change_map_url: analysisResult.change_map_url,
-        analysis: {
-          change_percentages: analysisResult.change_percentages,
-        },
-        created_at: new Date().toISOString(),
-      }
-
-      addAnalysis(newAnalysisRecord)
+      console.log("clicked");
+      
+      
     } catch (err) {
       setError("An error occurred during analysis. Please try again.")
       console.error(err)
@@ -187,7 +129,7 @@ const PredefinedRegionPage = () => {
             <img
               src={selectedRegion.sample_url || "/placeholder.svg"}
               alt={selectedRegion.name}
-              className="w-full h-64 object-cover rounded-lg"
+              className="w-full object-cover rounded-lg"
             />
           </div>
 
@@ -258,14 +200,7 @@ const PredefinedRegionPage = () => {
           </form>
         </div>
       ) : (
-        <AnalysisResult
-          result={result}
-          beforeImage={selectedRegion.sample_url}
-          afterImage={result.change_map_url}
-          beforeYear={beforeYear}
-          afterYear={afterYear}
-          onReset={resetSelection}
-        />
+        <AnalysisResult />
       )}
     </div>
   )
