@@ -139,12 +139,12 @@ const HistoryPage = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">
-                        Urban: {((item.analysis.critical_changes?.urbanization || 
-                                item.analysis.change_percentages?.urbanization || 0)).toFixed(2)}%
+                        Urban: {((item.analysis.critical_changes?.urbanization ||
+                          item.analysis.change_percentages?.urbanization || 0)).toFixed(2)}%
                       </div>
                       <div className="text-sm text-gray-500">
-                        Forest: {((item.analysis.critical_changes?.deforestation || 
-                                 item.analysis.change_percentages?.deforestation || 0)).toFixed(2)}%
+                        Forest: {((item.analysis.critical_changes?.deforestation ||
+                          item.analysis.change_percentages?.deforestation || 0)).toFixed(2)}%
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -160,7 +160,7 @@ const HistoryPage = () => {
         <div className="bg-white rounded-lg shadow-md p-6">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold text-gray-800">Analysis Details</h2>
-            <button type="button" onClick={closeDetails} className="text-gray-500 hover:text-gray-700">
+            <button type="button" onClick={closeDetails} className="text-gray-500 hover:text-gray-700 cursor-pointer">
               &larr; Back to history
             </button>
           </div>
@@ -201,9 +201,9 @@ const HistoryPage = () => {
               </div>
             </div>
           </div>
-
+          <hr className="mb-8"/>
           <AnalysisResult
-            selectedAnalysis= {selectedAnalysis}
+            selectedAnalysis={selectedAnalysis}
           />
         </div>
       )}

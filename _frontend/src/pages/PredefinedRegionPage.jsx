@@ -134,7 +134,7 @@ const PredefinedRegionPage = () => {
         <div className="bg-white rounded-lg shadow-md p-6">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold text-gray-800">{selectedRegion.name}</h2>
-            <button type="button" onClick={resetSelection} className="text-gray-500 hover:text-gray-700">
+            <button type="button" onClick={resetSelection} className=" cursor-pointer text-gray-500 hover:text-gray-700">
               &larr; Back to all regions
             </button>
           </div>
@@ -199,7 +199,7 @@ const PredefinedRegionPage = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className="btn-primary flex items-center justify-center min-w-[200px]"
+                className="btn-primary flex items-center justify-center min-w-[200px] bg-blue-500 text-white font-semibold py-2 px-4 rounded shadow hover:bg-blue-600 transition duration-200 cursor-pointer"
               >
                 <Map className="mr-2 h-5 w-5" />
                 Analyze Region

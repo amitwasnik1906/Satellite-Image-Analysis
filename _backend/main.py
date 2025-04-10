@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Depends, Request, HTTPException
+from fastapi import FastAPI, HTTPException, Depends, Request, File, UploadFile, Form
 from fastapi.middleware.cors import CORSMiddleware
 from pymongo import MongoClient
 from pydantic import BaseModel, Field
@@ -72,6 +72,13 @@ class PredefinedRegionRequest(BaseModel):
     class Config:
         populate_by_name = True  # Allows both _id and id to be used
         allow_population_by_field_name = True  # For backward compatibility
+
+class UserUploadedRegionRequest(BaseModel):
+    before_image_year: int
+    after_image_year: int
+    
+    
+
 
 # API Endpoints Response
 class AnalysisHistoryResponse(BaseModel):
@@ -218,9 +225,9 @@ async def analyze_predefined_region(request: PredefinedRegionRequest, user_id: s
             stride=32
         )
         
-        # Create results directory if it doesn't exist
-        results_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'results')
-        os.makedirs(results_dir, exist_ok=True)
+        # Create img directory if it doesn't exist
+        img_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'img')
+        os.makedirs(img_dir, exist_ok=True)
         
         # Generate visualization
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -274,8 +281,107 @@ async def analyze_predefined_region(request: PredefinedRegionRequest, user_id: s
     
 
 # ✅ Route: Analyze User Uploaded Region
-# @app.post("/analysis/user_uploaded_region")
-# async def analyze_user_uploaded_region():
+@app.post("/analysis/user_uploaded_region/{user_id}")
+async def analyze_user_uploaded_region(
+    user_id: str,
+    before_image: UploadFile = File(...),
+    after_image: UploadFile = File(...),
+    before_image_year: int = Form(...),
+    after_image_year: int = Form(...)
+):
+    try:
+        # Create temporary directory for uploaded files if it doesn't exist
+        temp_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'temp')
+        os.makedirs(temp_dir, exist_ok=True)
+        
+        # Save uploaded files to temporary location
+        before_image_path = os.path.join(temp_dir, f"before_{user_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.jpg")
+        after_image_path = os.path.join(temp_dir, f"after_{user_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.jpg")
+        
+        with open(before_image_path, "wb") as f:
+            f.write(before_image.file.read())
+        
+        with open(after_image_path, "wb") as f:
+            f.write(after_image.file.read())
+        
+        # Initialize the change detector
+        model_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'models', 'change_detection.keras')
+        
+        # Check if model file exists
+        if not os.path.exists(model_path):
+            raise HTTPException(status_code=404, detail=f"Model file not found at: {model_path}")
+            
+        detector = HighResolutionChangeDetector(model_path)
+        
+        # Detect changes between the images
+        print(f"Detecting changes for user uploaded images")
+        results = detector.detect_changes(
+            before_image_path,
+            after_image_path,
+            window_size=(64, 64),
+            stride=32
+        )
+        
+        # Create img directory if it doesn't exist
+        img_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'img')
+        os.makedirs(img_dir, exist_ok=True)
+        
+        # Generate visualization
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        output_path = os.path.join(img_dir, f"user_{user_id}_{timestamp}.jpg")
+        
+        vis_path, change_map_path, critical_changes = detector.generate_change_visualization(results, output_path)
+        
+        print("Change detection complete for user uploaded images")
+        print(f"Visualization saved to: {vis_path}")
+        print(f"Change map saved to: {change_map_path}")
+
+        # Upload visualization to Cloudinary
+        cloud_vis_url = upload_to_cloudinary(vis_path)
+        cloud_change_map_url = upload_to_cloudinary(change_map_path)
+        print("Images uploaded to Cloudinary")
+
+        # Create a new analysis history record
+        analysis_record = AnalysisHistoryModel(
+            user_id=user_id,
+            input_type="user_uploaded",
+            before_image_year=before_image_year,
+            after_image_year=after_image_year,
+            cloud_vis_url=cloud_vis_url,
+            cloud_change_map_url=cloud_change_map_url,
+            analysis={
+                "change_percentages": results['change_percentages'],
+                "critical_changes": critical_changes
+            }
+        )
+        
+        # Insert the record into MongoDB
+        inserted_id = analysis_collection.insert_one(analysis_record.model_dump()).inserted_id
+        
+        # Clean up temporary files
+        for file_path in [before_image_path, after_image_path, vis_path, change_map_path]:
+            if os.path.exists(file_path):
+                os.remove(file_path)
+        print("Temporary files cleaned up")
+
+        # Return proper response
+        analysis_record_dict = analysis_record.model_dump()
+        analysis_record_dict["_id"] = str(inserted_id)
+        
+        return {
+            "message": "Analysis completed successfully",
+            "analysis": analysis_record_dict
+        }
+    
+    except Exception as e:
+        # Clean up any temporary files in case of error
+        temp_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'temp')
+        if os.path.exists(temp_dir):
+            for filename in os.listdir(temp_dir):
+                if filename.startswith(f"before_{user_id}_") or filename.startswith(f"after_{user_id}_"):
+                    os.remove(os.path.join(temp_dir, filename))
+        
+        raise HTTPException(status_code=500, detail=str(e))
     
 
 # ✅ Route: Fetch User Analysis History

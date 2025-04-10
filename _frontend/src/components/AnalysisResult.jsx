@@ -86,11 +86,11 @@ const AnalysisResult = ({ selectedAnalysis }) => {
             </div>
           </div>
           
-          <div className="grid grid-cols-1 gap-6">
-            <div>
-              <h4 className="text-lg font-medium text-gray-700 mb-3">Changes in Region</h4>
+          <div className="grid grid-cols-1 gap-6 ">
+            <div className='mt-3 '>
+              <h4 className="text-lg font-bold text-gray-800 mb-3">Changes in Region</h4>
               {cloud_vis_url && (
-                <div className="border border-gray-200 rounded-lg overflow-hidden">
+                <div className="border border-gray-300 rounded-lg overflow-hidden">
                   <img 
                     src={cloud_vis_url} 
                     alt={`Satellite image from ${before_image_year} to ${after_image_year}`} 
@@ -100,8 +100,8 @@ const AnalysisResult = ({ selectedAnalysis }) => {
               )}
             </div>
             
-            <div>
-              <h4 className="text-lg font-medium text-gray-700 mb-3">Critical Environmental Changes</h4>
+            <div className='mt-3'>
+              <h4 className="text-lg font-bold text-gray-700 mb-3">Critical Environmental Changes</h4>
               {cloud_change_map_url && (
                 <div className="border border-gray-200 rounded-lg overflow-hidden">
                   <img 
