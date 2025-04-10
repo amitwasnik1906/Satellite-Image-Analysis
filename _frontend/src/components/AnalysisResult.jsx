@@ -3,6 +3,8 @@ import { CheckCircle } from 'lucide-react'
 
 const AnalysisResult = ({ selectedAnalysis }) => {
   const { analysis, before_image_year, after_image_year, cloud_vis_url, cloud_change_map_url } = selectedAnalysis || {};
+  console.log(analysis);
+  
   
   return (
     <div>

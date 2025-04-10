@@ -31,6 +31,17 @@ export const analyzePredefinedRegion = async(analysisData, userId) => {
     }
 }
 
+
+export const analyzeUserUploadedRegion = async(analysisData, userId) => {
+    try {
+        const response = await api.post(`/analysis/user_uploaded_region/${userId}`, analysisData)
+        return response.data
+    } catch (error) {
+        console.error("Error analyzing custom region:", error)
+        throw error
+    }
+}
+
 // History API
 export const getUserHistory = async(userId) => {
     try {
