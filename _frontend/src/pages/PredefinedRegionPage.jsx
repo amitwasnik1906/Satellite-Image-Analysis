@@ -76,7 +76,7 @@ const PredefinedRegionPage = () => {
         user.id
       )
 
-      setResult(data)
+      setResult(data.analysis)
 
     } catch (err) {
       setError("An error occurred during analysis. Please try again.")
@@ -209,7 +209,7 @@ const PredefinedRegionPage = () => {
         </div>
       ) : (
         <div className="bg-white rounded-lg shadow-md p-6">
-          <AnalysisResult selectedAnalysis={result.analysis} />
+          <AnalysisResult selectedAnalysis={result} />
         </div>
       )}
     </div>

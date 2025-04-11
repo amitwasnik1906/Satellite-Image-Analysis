@@ -4,6 +4,8 @@ import { useState, useEffect } from "react"
 import { Upload, AlertCircle, CheckCircle } from "lucide-react"
 import LoadingSpinner from "../components/LoadingSpinner"
 import AnalysisResult from "../components/AnalysisResult"
+import { analyzeUserUploadedRegion } from "../api"
+import { useUser } from "@clerk/clerk-react"
 
 const UploadPage = () => {
   const [beforeImage, setBeforeImage] = useState(null)
@@ -14,6 +16,8 @@ const UploadPage = () => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [result, setResult] = useState(null)
+
+  const { user } = useUser();
 
   // Clean up object URLs when component unmounts or images change
   useEffect(() => {
@@ -59,97 +63,33 @@ const UploadPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault()
 
-    // if (!beforeImage || !afterImage) {
-    //   setError("Please upload both before and after images")
-    //   return
-    // }
+    if (!beforeImage || !afterImage) {
+      setError("Please upload both before and after images")
+      return
+    }
 
-    // if (!before_image_year || !after_image_year) {
-    //   setError("Please enter both before and after image years")
-    //   return
-    // }
+    if (!before_image_year || !after_image_year) {
+      setError("Please enter both before and after image years")
+      return
+    }
 
-    // setLoading(true)
-    // setError(null)
+    setLoading(true)
+    setError(null)
 
-    // In a real implementation, you would upload the images to the backend
-    // For now, we'll simulate a response after a delay
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 2000))
+      console.log("clicked");
 
-      const data = {
-        "_id": "67f3c3ba7c7170917128d0c2",
-        "user_id": "user_2vP0DDwXeORArxV7GhpqQoRRj0Z",
-        "input_type": "predefined_region",
-        "before_image_year": 2013,
-        "after_image_year": 2025,
-        "cloud_vis_url": "https://res.cloudinary.com/dq5mzbtzt/image/upload/v1744028602/land_analysis/kfxr8cwunpqioe8ijz0s.jpg",
-        "cloud_change_map_url": "https://res.cloudinary.com/dq5mzbtzt/image/upload/v1744028604/land_analysis/hrsrpjiakuxfqhklto7p.jpg",
-        "analysis": {
-          "change_percentages": [
-            {
-              "class": "AnnualCrop",
-              "change": -48.97530864197531,
-              "initial": 49.76543209876543,
-              "final": 0.7901234567901235
-            },
-            {
-              "class": "Forest",
-              "change": 0.4074074074074074,
-              "initial": 0,
-              "final": 0.4074074074074074
-            },
-            {
-              "class": "HerbaceousVegetation",
-              "change": -4.148148148148145,
-              "initial": 34.5679012345679,
-              "final": 30.419753086419753
-            },
-            {
-              "class": "Industrial",
-              "change": 0.1728395061728395,
-              "initial": 0.14814814814814814,
-              "final": 0.32098765432098764
-            },
-            {
-              "class": "Pasture",
-              "change": -0.30864197530864196,
-              "initial": 0.30864197530864196,
-              "final": 0
-            },
-            {
-              "class": "PermanentCrop",
-              "change": 25.037037037037035,
-              "initial": 6.91358024691358,
-              "final": 31.950617283950617
-            },
-            {
-              "class": "Residential",
-              "change": 32.55555555555556,
-              "initial": 3.432098765432099,
-              "final": 35.98765432098766
-            },
-            {
-              "class": "SeaLake",
-              "change": -4.740740740740741,
-              "initial": 4.864197530864198,
-              "final": 0.12345679012345678
-            }
-          ],
-          "critical_changes": {
-            "deforestation": 0,
-            "urbanization": 33.34567901234568,
-            "water_changes": 4.839506172839506
-          }
-        },
-        "created_at": "2025-04-07T17:53:22.300000"
-      }
+      const data = await analyzeUserUploadedRegion({
+        before_image: beforeImage.file,
+        after_image: afterImage.file,
+        before_image_year: parseInt(before_image_year),
+        after_image_year: parseInt(after_image_year)
+      },
+        user.id
+      )
 
-      // Simulate a successful response
+      setResult(data.analysis)
 
-
-      setResult(data)
     } catch (err) {
       setError("An error occurred during analysis. Please try again.")
       console.error(err)
@@ -185,6 +125,18 @@ const UploadPage = () => {
   const currentYear = new Date().getFullYear()
 
   return (
+    loading ? (
+      <div className="flex flex-col items-center py-12">
+        <LoadingSpinner message="Analyzing region..." />
+
+        <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200 shadow-sm text-center">
+          <p className="text-gray-700 font-medium">This analysis takes a while, please do not refresh the page.</p>
+          <p className="mt-3 text-sm text-gray-500 italic">
+            Don't worry! Even if you refresh, you can find your analysis results in the History section.
+          </p>
+        </div>
+      </div>
+    ): 
     <div className="max-w-4xl mx-auto">
       <h1 className="text-3xl font-bold text-gray-800 mb-6">Upload Satellite Images</h1>
 

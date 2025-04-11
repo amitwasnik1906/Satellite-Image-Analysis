@@ -356,21 +356,17 @@ async def analyze_user_uploaded_region(
         )
         
         # Insert the record into MongoDB
-        inserted_id = analysis_collection.insert_one(analysis_record.model_dump()).inserted_id
+        analysis_collection.insert_one(analysis_record.model_dump())
         
         # Clean up temporary files
         for file_path in [before_image_path, after_image_path, vis_path, change_map_path]:
             if os.path.exists(file_path):
                 os.remove(file_path)
         print("Temporary files cleaned up")
-
-        # Return proper response
-        analysis_record_dict = analysis_record.model_dump()
-        analysis_record_dict["_id"] = str(inserted_id)
         
         return {
             "message": "Analysis completed successfully",
-            "analysis": analysis_record_dict
+            "analysis": analysis_collection
         }
     
     except Exception as e:

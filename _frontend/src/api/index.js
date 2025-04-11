@@ -34,8 +34,18 @@ export const analyzePredefinedRegion = async(analysisData, userId) => {
 
 export const analyzeUserUploadedRegion = async(analysisData, userId) => {
     try {
-        const response = await api.post(`/analysis/user_uploaded_region/${userId}`, analysisData)
-        return response.data
+        const formData = new FormData();
+        formData.append('before_image', analysisData.before_image);
+        formData.append('after_image', analysisData.after_image);
+        formData.append('before_image_year', analysisData.before_image_year);
+        formData.append('after_image_year', analysisData.after_image_year);
+
+        const response = await api.post(`/analysis/user_uploaded_region/${userId}`, formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data'
+            }
+        });
+        return response.data;
     } catch (error) {
         console.error("Error analyzing custom region:", error)
         throw error
