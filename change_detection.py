@@ -380,8 +380,8 @@ def main():
     detector = HighResolutionChangeDetector(model_path)
     
     # Get input paths
-    image1_path = './images/amit/2013.jpg'
-    image2_path = './images/amit/2025.jpg'
+    image1_path = './images/sangli/2014.jpg'
+    image2_path = './images/sangli/2024.jpg'
     
     # Detect changes
     print("Detecting changes between images...")

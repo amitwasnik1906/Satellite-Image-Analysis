@@ -20,7 +20,7 @@ const PredefinedRegionPage = () => {
   const { user } = useUser();
 
   // Available years for demonstration
-  const availableYears = ["2013", "2015", "2018", "2020", "2022", "2025"]
+  const availableYears = ["2011","2012","2013", "2014","2015", "2016","2017", "2018", "2018","2019", "2020", "2021", "2022","2023","2024", "2025"]
 
   useEffect(() => {
     const fetchRegions = async () => {
