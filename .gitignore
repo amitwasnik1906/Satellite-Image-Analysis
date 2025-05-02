@@ -7,3 +7,4 @@ images/
 _backend/img
 _backend/.env
 models
+evaluation_results/

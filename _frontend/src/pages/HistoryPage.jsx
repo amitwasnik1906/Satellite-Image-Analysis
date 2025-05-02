@@ -20,7 +20,7 @@ const HistoryPage = () => {
         setLoading(true)
         const userId = user?.id  // Default to "1" if user ID not available
         const historyData = await getUserHistory(userId)
-        setHistory(historyData)
+        setHistory(historyData)        
         setLoading(false)
       } catch (err) {
         console.error("Error fetching history:", err)
