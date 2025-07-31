@@ -71,7 +71,7 @@ class PredefinedRegionRequest(BaseModel):
     
     class Config:
         populate_by_name = True  # Allows both _id and id to be used
-        allow_population_by_field_name = True  # For backward compatibility
+        validate_by_name = True  # For backward compatibility
 
 class UserUploadedRegionRequest(BaseModel):
     before_image_year: int
@@ -99,7 +99,7 @@ class RegionResponse(BaseModel):
     sample_url: str
     
     class Config:
-        allow_population_by_field_name = True  # Allows both _id and id to be used
+        validate_by_name = True  # Allows both _id and id to be used
 
 
 # function for upload image to cloudinary
